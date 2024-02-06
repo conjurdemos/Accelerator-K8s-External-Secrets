@@ -1,0 +1,1 @@
+# accelerator-k8s-external-secrets
