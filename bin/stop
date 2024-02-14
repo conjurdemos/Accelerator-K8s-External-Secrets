@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+cd "$(git rev-parse --show-toplevel)"
+source ./bin/utils
+
+source demo-vars.sh
+pushd deploy/kubernetes-conjur-deploy
+  ./stop
+popd

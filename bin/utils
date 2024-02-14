@@ -1,0 +1,107 @@
+#!/usr/bin/env bash
+
+function announce() {
+  echo "++++++++++++++++++++++++++++++++++++++"
+  echo ""
+  echo "$@"
+  echo ""
+  echo "++++++++++++++++++++++++++++++++++++++"
+}
+
+function build_test_runner_image() {
+  pushd ..
+  docker build --tag $TEST_RUNNER_IMAGE:$CONJUR_NAMESPACE_NAME \
+    --file Dockerfile.e2e \
+    --build-arg KUBECTL_VERSION=$KUBECTL_VERSION \
+    --build-arg OPENSHIFT_CLI_URL=$OPENSHIFT_CLI_URL \
+    .
+  popd
+}
+
+function configure_conjur_cli() {
+  conjur_url="https://conjur-master.$CONJUR_NAMESPACE_NAME.svc.cluster.local/api"
+  $cli exec "$(conjur_cli_pod_name)" -- sh -c "
+    echo y | conjur init -a $CONJUR_ACCOUNT -u $conjur_url --self-signed --force
+    conjur login -i admin -p $CONJUR_ADMIN_PASSWORD
+  "
+}
+
+function conjur_cli_pod_name() {
+  $cli get pods \
+    --namespace "$CONJUR_NAMESPACE_NAME" \
+    --selector 'app=conjur-cli' \
+    -o jsonpath='{.items[].metadata.name}'
+}
+
+function repo_root() {
+  root_dir="$(git rev-parse --show-superproject-working-tree)"
+  if [[ "$root_dir" == "" ]]; then
+    root_dir="$(git rev-parse --show-toplevel)"
+  fi
+  echo "$root_dir"
+}
+
+function run_docker_cmd() {
+  additional_flags="${2:-}"
+
+  if [ "${PLATFORM}" = "kubernetes" ]; then
+    additional_env_vars="
+      -e GCLOUD_CLUSTER_NAME
+      -e GCLOUD_ZONE
+      -e GCLOUD_PROJECT_NAME
+      -e GCLOUD_SERVICE_KEY=/tmp$GCLOUD_SERVICE_KEY"
+    additional_volumes="
+      -v $GCLOUD_SERVICE_KEY:/tmp$GCLOUD_SERVICE_KEY
+      -v $(echo ~)/.config:/root/.config"
+  elif [ "${PLATFORM}" = "openshift" ]; then
+    additional_env_vars="
+      -e OPENSHIFT_URL
+      -e OPENSHIFT_VERSION
+      -e OPENSHIFT_USERNAME
+      -e OPENSHIFT_PASSWORD"
+    additional_volumes=""
+   fi
+
+  docker run -i \
+    $additional_flags \
+    -e APP_NAMESPACE_NAME \
+    -e AUTHENTICATOR_ID \
+    -e CONJUR_ACCOUNT \
+    -e CONJUR_ADMIN_PASSWORD \
+    -e CONJUR_APPLIANCE_IMAGE \
+    -e CONJUR_AUTHENTICATORS \
+    -e CONJUR_DEPLOYMENT \
+    -e CONJUR_FOLLOWER_COUNT \
+    -e CONJUR_LOG_LEVEL \
+    -e CONJUR_NAMESPACE_NAME \
+    -e DEPLOY_MASTER_CLUSTER \
+    -e DEV \
+    -e DOCKER_REGISTRY_PATH \
+    -e DOCKER_REGISTRY_URL \
+    -e IMAGE_PULL_SECRET \
+    -e LOCAL \
+    -e LOCAL_AUTHENTICATOR \
+    -e PLATFORM \
+    -e PULL_DOCKER_REGISTRY_PATH \
+    -e PULL_DOCKER_REGISTRY_URL \
+    -e TEST_NAME_PREFIX \
+    -e TEST_PLATFORM \
+    -e RUN_IN_DOCKER \
+    -e SUMMON_ENV \
+    -e UNIQUE_TEST_ID \
+    $additional_env_vars \
+    -v "$(repo_root):/src" \
+    -v /var/run/docker.sock:/var/run/docker.sock \
+    $additional_volumes \
+    -w /src/deploy \
+    $TEST_RUNNER_IMAGE:$CONJUR_NAMESPACE_NAME \
+    bash -c "
+      ./platform_login.sh
+      $1
+    "
+}
+
+function run_interactive_docker_cmd() {
+  run_docker_cmd "$1 && bash" "-t"
+}
+
