@@ -1,5 +1,11 @@
 #!/usr/bin/env bash
 
+if [[ "${PLATFORM}" == "kubernetes" ]]; then
+  cli="kubectl"
+elif [[ "${PLATFORM}" == "openshift" ]]; then
+  cli="oc"
+fi
+
 function announce() {
   echo "++++++++++++++++++++++++++++++++++++++"
   echo ""

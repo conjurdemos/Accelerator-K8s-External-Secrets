@@ -4,6 +4,7 @@ cd "$(git rev-parse --show-toplevel)"
 source ./bin/utils
 
 conjur_dir="$(repo_root)/deploy/kubernetes-conjur-deploy"
+policy_dir="$(repo_root)/policy"
 
 function cleanup {
   pushd "$conjur_dir"
@@ -28,4 +29,32 @@ pushd "$conjur_dir"
 
   ./start
   export DEV=$old_dev
+popd
+
+pushd "$policy_dir"
+  announce "Generating Conjur policy"
+
+  mkdir -p ./generated
+  ./templates/authn-jwt.yml.template.sh      > ./generated/$APP_NAMESPACE_NAME.authn-jwt.yml
+  ./templates/authn-jwt-apps.yml.template.sh > ./generated/$APP_NAMESPACE_NAME.authn-jwt-apps.yml
+  ./templates/secrets.yml.template.sh        > ./generated/$APP_NAMESPACE_NAME.secrets.yml
+
+  announce "Loading Conjur policy and configuring AuthnJWT"
+
+  ISSUER="$($cli get --raw /.well-known/openid-configuration | jq -r '.issuer')"
+  JWKS_URI="$($cli get --raw /.well-known/openid-configuration | jq -r '.jwks_uri')"
+  $cli get --raw "$JWKS_URI" > jwks.json
+
+  cli_pod="$(conjur_cli_pod_name)"
+  $cli exec "$cli_pod" -- rm -rf /policy
+  $cli cp "$policy_dir" "$cli_pod:/policy"
+
+  configure_conjur_cli
+  $cli exec "$cli_pod" -- sh -c "
+    APP_NAMESPACE_NAME=${APP_NAMESPACE_NAME} \
+    AUTHENTICATOR_ID=${AUTHENTICATOR_ID} \
+    CONJUR_NAMESPACE_NAME=${CONJUR_NAMESPACE_NAME} \
+    ISSUER=${ISSUER} \
+    /policy/load_policies.sh
+  "
 popd
