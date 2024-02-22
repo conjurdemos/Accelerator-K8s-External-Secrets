@@ -1,0 +1,104 @@
+#!/usr/bin/env bash
+set -eo pipefail
+cd "$(git rev-parse --show-toplevel)"
+
+function print_help() {
+  cat << EOF
+Start the Conjur Enterprise and External Secrets Operator environment.
+
+This script will deploy Conjur Enterprise and ESO to a target Kubernetes cluster,
+as well as a demo application that requires secrets from Conjur in order to
+connect to a database.
+
+Before running this script, be sure to update the following sources of config:
+  - ./demo-vars.sh contains configuration for the desired Conjur deployment.
+  - ./secrets.yml contains configuration for connecting to your K8s cluster.
+Flags passed to this script will overwrite settings specified in demo-vars.sh.
+
+Usage: ./bin/start [options]
+
+Global options:
+    -h, --help    Show this help message.
+    --dev         Keep the environment running until it's stopped using the
+                  bin/stop script. By default, the environment will be stopped
+                  after tests finished.
+    --docker      Setup and interact with the environment using a Docker container.
+                  This is helpful when running in a machine that doesn't have
+                  "oc" or "kubectl" installed.
+    --local       Run the environment against a local KinD or Docker Desktop cluster.
+                  This option is incompatible with --docker, and uses the current
+                  kubectl context - be sure to target your local cluster.
+GKE options:
+    --gke         Run the environment on GKE.
+OpenShift options:
+    --current     Run the environment on the currently supported Openshift platform.
+    --next        Run the environment on the latest Openshift platform.
+    --oldest      Run the environment on the oldest supported Openshift platform.
+EOF
+  exit
+}
+
+function runScriptWithSummon() {
+  # CONJUR_ACCOUNT is set in bootstrap.env to a test value, which isn't valid for ConjurOps.
+  CONJUR_ACCOUNT="conjur" summon \
+    --provider summon-conjur \
+    --environment $SUMMON_ENV \
+    -f "$(repo_root)/secrets.yml" \
+    "$1"
+}
+
+# demo-vars.sh defines all the environment variables we will use as config for
+# the demo workflow. By default, the envvars produce a non-interactive env
+# where Conjur Enterprise is deployed to a remote GKE cluster from a Docker
+# container.
+source ./demo-vars.sh
+
+# The following flags overwrite the envvars set in demo-vars.sh.
+while true ; do
+  case "$1" in
+    --dev ) DEV=true ; shift ;;
+    --docker ) RUN_IN_DOCKER=true ; shift ;;
+    --gke ) SUMMON_ENV=gke ; shift ;;
+    --local ) LOCAL=true ; shift ;;
+    --current ) SUMMON_ENV=current ; shift ;;
+    --next ) SUMMON_ENV=next ; shift ;;
+    --oldest ) SUMMON_ENV=oldest ; shift ;;
+    -h | --help ) print_help ; shift ;;
+     * ) if [ -z "$1" ]; then break; else echo "$1 is not a valid option"; exit 1; fi;;
+  esac
+done
+
+if [[ "$RUN_IN_DOCKER" == "true" && "$LOCAL" == "true" ]]; then
+  echo "Flags --docker and --local are incompatible. Exiting."
+  exit 1
+fi
+
+if [[ "$SUMMON_ENV" != "common" && "$DEV" == "true" ]]; then
+  export SUMMON_ENV="${SUMMON_ENV}-dev"
+fi
+
+# Source utility functions only after establishing all required envvars
+source ./bin/utils
+
+pushd deploy
+  if [ -z "$(ls -A kubernetes-conjur-deploy)" ]; then
+    git submodule init -- ./kubernetes-conjur-deploy
+    git submodule update --remote -- ./kubernetes-conjur-deploy
+  fi
+
+  # Prepare Docker images
+  # This is done outside of the container to avoid authentication errors when
+  # pulling from the internal registry from inside the container
+  docker pull $CONJUR_APPLIANCE_IMAGE
+
+  if [[ "$RUN_IN_DOCKER" == "true" ]]; then
+    build_test_runner_image
+    if [[ "$DEV" == "true" ]]; then
+      runScriptWithSummon ./run_with_docker_interactive.sh
+    else
+      runScriptWithSummon ./run_with_docker.sh
+    fi
+  else
+    runScriptWithSummon ./run.sh
+  fi
+popd
