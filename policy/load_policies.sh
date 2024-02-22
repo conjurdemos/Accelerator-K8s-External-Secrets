@@ -5,6 +5,7 @@ readonly POLICY_DIR="/policy"
 
 # NOTE: generated files are prefixed with the test app namespace to allow for parallel CI
 set -- "$POLICY_DIR/users.yml" \
+  "$POLICY_DIR/generated/$APP_NAMESPACE_NAME.hosts.yml" \
   "$POLICY_DIR/generated/$APP_NAMESPACE_NAME.authn-jwt.yml" \
   "$POLICY_DIR/generated/$APP_NAMESPACE_NAME.authn-jwt-apps.yml" \
   "$POLICY_DIR/generated/$APP_NAMESPACE_NAME.secrets.yml" \

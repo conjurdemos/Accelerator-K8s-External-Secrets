@@ -37,6 +37,7 @@ pushd "$policy_dir"
   mkdir -p ./generated
   ./templates/authn-jwt.yml.template.sh      > ./generated/$APP_NAMESPACE_NAME.authn-jwt.yml
   ./templates/authn-jwt-apps.yml.template.sh > ./generated/$APP_NAMESPACE_NAME.authn-jwt-apps.yml
+  ./templates/hosts.yml.template.sh          > ./generated/$APP_NAMESPACE_NAME.hosts.yml
   ./templates/secrets.yml.template.sh        > ./generated/$APP_NAMESPACE_NAME.secrets.yml
 
   announce "Loading Conjur policy and configuring AuthnJWT"
@@ -45,7 +46,7 @@ pushd "$policy_dir"
   JWKS_URI="$($cli get --raw /.well-known/openid-configuration | jq -r '.jwks_uri')"
   $cli get --raw "$JWKS_URI" > jwks.json
 
-  cli_pod="$(conjur_cli_pod_name)"
+  cli_pod="$(pod_name "$CONJUR_NAMESPACE_NAME" 'app=conjur-cli')"
   $cli exec "$cli_pod" -- rm -rf /policy
   $cli cp "$policy_dir" "$cli_pod:/policy"
 
@@ -57,4 +58,8 @@ pushd "$policy_dir"
     ISSUER=${ISSUER} \
     /policy/load_policies.sh
   "
+
+  # Now that test Conjur resources have been created, store the API key for
+  # host $CONJUR_HOST_ID in an envvar
+  export CONJUR_HOST_API_KEY="$(rotate_host_api_key "$CONJUR_HOST_ID")"
 popd

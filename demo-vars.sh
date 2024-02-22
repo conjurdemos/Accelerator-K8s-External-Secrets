@@ -12,6 +12,8 @@ export DEPLOY_MASTER_CLUSTER=true
 export CONJUR_FOLLOWER_COUNT=1
 export AUTHENTICATOR_ID=eso-env
 export CONJUR_AUTHENTICATORS="authn,authn-jwt/$AUTHENTICATOR_ID"
+export CONJUR_HOST_ID=demo-app
+export CONJUR_HOST_API_KEY=to-be-updated-once-host-created
 
 #######
 # Default test env
