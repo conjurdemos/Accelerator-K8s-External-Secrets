@@ -5,10 +5,11 @@ source ./bin/utils
 
 conjur_dir="$(repo_root)/deploy/kubernetes-conjur-deploy"
 policy_dir="$(repo_root)/policy"
+manifest_dir="$(repo_root)/manifest"
 
 function cleanup {
-  pushd "$conjur_dir"
-    ./stop
+  pushd "$(repo_root)"
+    ./bin/stop
   popd
 }
 trap cleanup ERR
@@ -29,6 +30,9 @@ pushd "$conjur_dir"
 
   ./start
   export DEV=$old_dev
+
+  # Now that Conjur Enterprise is deployed, store the SSL cert in an envvar
+  export CONJUR_CERTIFICATE="$(conjur_ssl_cert)"
 popd
 
 pushd "$policy_dir"
@@ -62,4 +66,39 @@ pushd "$policy_dir"
   # Now that test Conjur resources have been created, store the API key for
   # host $CONJUR_HOST_ID in an envvar
   export CONJUR_HOST_API_KEY="$(rotate_host_api_key "$CONJUR_HOST_ID")"
+popd
+
+announce "Installing External Secrets Operator"
+
+helm repo add external-secrets https://charts.external-secrets.io
+helm repo update
+
+if [[ "$PLATFORM" == "openshift" ]]; then
+  $cli adm policy add-scc-to-user \
+    anyuid \
+    "system:serviceaccount:$ESO_NAMESPACE_NAME:external-secrets"
+fi
+
+helm install external-secrets external-secrets/external-secrets \
+  -n "$ESO_NAMESPACE_NAME" \
+  --create-namespace \
+  --wait \
+  --timeout "5m" \
+  --set extraArgs.loglevel=debug \
+  --values "./deploy/eso/values.${PLATFORM}.yml"
+
+pushd "$manifest_dir"
+  announce "Generate manifests for test configuration"
+
+  mkdir -p ./generated
+  ./templates/conjur-connection-secret.yml.template.sh > ./generated/$APP_NAMESPACE_NAME.conjur-connection-secret.yml
+  ./templates/service-account.yml.template.sh          > ./generated/$APP_NAMESPACE_NAME.service-account.yml
+  ./templates/service-account-secret.yml.template.sh   > ./generated/$APP_NAMESPACE_NAME.service-account-secret.yml
+
+  announce "Configuring application namespace"
+
+  $cli create namespace "$APP_NAMESPACE_NAME"
+  $cli apply -n "$APP_NAMESPACE_NAME" -f ./generated/$APP_NAMESPACE_NAME.service-account.yml
+  $cli apply -n "$APP_NAMESPACE_NAME" -f ./generated/$APP_NAMESPACE_NAME.conjur-connection-secret.yml
+  $cli apply -n "$APP_NAMESPACE_NAME" -f ./generated/$APP_NAMESPACE_NAME.service-account-secret.yml
 popd

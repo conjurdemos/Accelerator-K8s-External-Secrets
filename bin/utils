@@ -33,11 +33,11 @@ function configure_conjur_cli() {
   "
 }
 
-function conjur_cli_pod_name() {
-  $cli get pods \
-    --namespace "$CONJUR_NAMESPACE_NAME" \
-    --selector 'app=conjur-cli' \
-    -o jsonpath='{.items[].metadata.name}'
+function conjur_ssl_cert() {
+  follower_pod="$(pod_name $CONJUR_NAMESPACE_NAME 'role=follower')"
+  $cli exec "$follower_pod" -n "$CONJUR_NAMESPACE_NAME" -- /bin/bash -c "
+    cat /opt/conjur/etc/ssl/conjur.pem
+  "
 }
 
 function repo_root() {
@@ -101,11 +101,13 @@ function run_docker_cmd() {
   docker run -i \
     $additional_flags \
     -e APP_NAMESPACE_NAME \
+    -e APP_SERVICE_ACCOUNT_NAME \
     -e AUTHENTICATOR_ID \
     -e CONJUR_ACCOUNT \
     -e CONJUR_ADMIN_PASSWORD \
     -e CONJUR_APPLIANCE_IMAGE \
     -e CONJUR_AUTHENTICATORS \
+    -e CONJUR_CERTIFICATE \
     -e CONJUR_DEPLOYMENT \
     -e CONJUR_FOLLOWER_COUNT \
     -e CONJUR_HOST_API_KEY \
@@ -116,6 +118,7 @@ function run_docker_cmd() {
     -e DEV \
     -e DOCKER_REGISTRY_PATH \
     -e DOCKER_REGISTRY_URL \
+    -e ESO_NAMESPACE_NAME \
     -e IMAGE_PULL_SECRET \
     -e LOCAL \
     -e LOCAL_AUTHENTICATOR \

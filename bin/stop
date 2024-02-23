@@ -1,8 +1,11 @@
 #!/usr/bin/env bash
 cd "$(git rev-parse --show-toplevel)"
+source demo-vars.sh
 source ./bin/utils
 
-source demo-vars.sh
 pushd deploy/kubernetes-conjur-deploy
   ./stop
 popd
+
+helm uninstall external-secrets -n "$ESO_NAMESPACE_NAME"
+$cli delete ns "$APP_NAMESPACE_NAME" "$ESO_NAMESPACE_NAME"

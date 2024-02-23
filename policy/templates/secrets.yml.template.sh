@@ -19,7 +19,7 @@ cat << EOL
 - !grant
   role: !layer secrets/users
   members:
-    - !host conjur/authn-jwt/${AUTHENTICATOR_ID}/apps/system:serviceaccount:${APP_NAMESPACE_NAME}:test-app-sa
+    - !host conjur/authn-jwt/${AUTHENTICATOR_ID}/apps/system:serviceaccount:${APP_NAMESPACE_NAME}:${APP_SERVICE_ACCOUNT_NAME}
 
 - !grant
   role: !layer secrets/users

@@ -14,6 +14,7 @@ export AUTHENTICATOR_ID=eso-env
 export CONJUR_AUTHENTICATORS="authn,authn-jwt/$AUTHENTICATOR_ID"
 export CONJUR_HOST_ID=demo-app
 export CONJUR_HOST_API_KEY=to-be-updated-once-host-created
+export CONJUR_CERTIFICATE=to-be-updated-once-conjur-deployed
 
 #######
 # Default test env
@@ -23,7 +24,7 @@ export LOCAL=false
 export RUN_IN_DOCKER=true
 export STOP_RUNNING_ENV=true
 export TEST_RUNNER_IMAGE=accelerator-test-runner
-export UNIQUE_TEST_ID="$(uuidgen | tr "[:upper:]" "[:lower:]" | head -c 10)"
+export UNIQUE_TEST_ID="${UNIQUE_TEST_ID:-$(uuidgen | tr "[:upper:]" "[:lower:]" | head -c 10)}"
 
 export PLATFORM=kubernetes
 export SUMMON_ENV=gke
@@ -34,6 +35,8 @@ export TEST_PLATFORM=gke
 #######
 export CONJUR_NAMESPACE_NAME=accelerator-conjur-$UNIQUE_TEST_ID
 export APP_NAMESPACE_NAME=accelerator-apps-$UNIQUE_TEST_ID
+export ESO_NAMESPACE_NAME=external-secrets-$UNIQUE_TEST_ID
+export APP_SERVICE_ACCOUNT_NAME=test-app-sa
 
 #######
 # Local dev env (uncomment all lines if using this configuration)
@@ -47,6 +50,7 @@ export APP_NAMESPACE_NAME=accelerator-apps-$UNIQUE_TEST_ID
 #
 # export CONJUR_NAMESPACE_NAME=accelerator-conjur
 # export APP_NAMESPACE_NAME=accelerator-apps
+# export ESO_NAMESPACE_NAME=external-secrets
 
 #######
 # Remote dev env using GKE (uncomment all lines if using this configuration)
@@ -57,6 +61,7 @@ export APP_NAMESPACE_NAME=accelerator-apps-$UNIQUE_TEST_ID
 #
 # export CONJUR_NAMESPACE_NAME=accelerator-conjur
 # export APP_NAMESPACE_NAME=accelerator-apps
+# export ESO_NAMESPACE_NAME=external-secrets
 
 #######
 # Remote dev env using OpenShift (uncomment all lines if using this configuration)
@@ -71,4 +76,5 @@ export APP_NAMESPACE_NAME=accelerator-apps-$UNIQUE_TEST_ID
 #
 # export CONJUR_NAMESPACE_NAME=accelerator-conjur
 # export APP_NAMESPACE_NAME=accelerator-apps
+# export ESO_NAMESPACE_NAME=external-secrets
 
