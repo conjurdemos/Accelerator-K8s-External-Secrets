@@ -5,7 +5,7 @@
 #######
 export CONJUR_MINOR_VERSION=5.0
 export CONJUR_APPLIANCE_IMAGE=registry.tld/conjur-appliance:$CONJUR_MINOR_VERSION-stable
-export CONJUR_ACCOUNT=default
+export CONJUR_ACCOUNT=conjur
 export CONJUR_ADMIN_PASSWORD=ADmin123!!!!
 export CONJUR_LOG_LEVEL=debug
 export DEPLOY_MASTER_CLUSTER=true

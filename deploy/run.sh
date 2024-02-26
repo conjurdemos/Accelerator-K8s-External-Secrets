@@ -94,6 +94,8 @@ pushd "$manifest_dir"
   ./templates/conjur-connection-secret.yml.template.sh > ./generated/$APP_NAMESPACE_NAME.conjur-connection-secret.yml
   ./templates/service-account.yml.template.sh          > ./generated/$APP_NAMESPACE_NAME.service-account.yml
   ./templates/service-account-secret.yml.template.sh   > ./generated/$APP_NAMESPACE_NAME.service-account-secret.yml
+  ./templates/api-key-provider.yml.template.sh         > ./generated/$APP_NAMESPACE_NAME.api-key-provider.yml
+  ./templates/external-secret.yml.template.sh          > ./generated/$APP_NAMESPACE_NAME.external-secret.yml
 
   announce "Configuring application namespace"
 
@@ -102,3 +104,7 @@ pushd "$manifest_dir"
   $cli apply -n "$APP_NAMESPACE_NAME" -f ./generated/$APP_NAMESPACE_NAME.conjur-connection-secret.yml
   $cli apply -n "$APP_NAMESPACE_NAME" -f ./generated/$APP_NAMESPACE_NAME.service-account-secret.yml
 popd
+
+if [[ "$DEV" != "true" ]]; then
+  go test -v ./e2e
+fi

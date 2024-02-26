@@ -21,3 +21,6 @@ conjur variable set -i "conjur/authn-jwt/$AUTHENTICATOR_ID/issuer" -v "$ISSUER"
 conjur variable set -i "conjur/authn-jwt/$AUTHENTICATOR_ID/public-keys" -v "{\"type\":\"jwks\", \"value\":$(cat /policy/jwks.json)}"
 conjur variable set -i "conjur/authn-jwt/$AUTHENTICATOR_ID/identity-path" -v "conjur/authn-jwt/$AUTHENTICATOR_ID/apps"
 conjur variable set -i "conjur/authn-jwt/$AUTHENTICATOR_ID/audience" -v "https://conjur-follower.$CONJUR_NAMESPACE_NAME.svc.cluster.local"
+
+# Load test secrets
+conjur variable set -i "secrets/test_secret" -v "MyS3cretContent!"

@@ -37,6 +37,11 @@ RUN curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/s
     chmod 700 get_helm.sh && \
     ./get_helm.sh
 
+# Install Go
+ENV GOLANG_VERSION 1.21.6
+RUN curl -L https://golang.org/dl/go${GOLANG_VERSION}.linux-amd64.tar.gz | tar -C /usr/local -xz
+ENV PATH="$PATH:/usr/local/go/bin"
+
 WORKDIR /src
 RUN git config --global --add safe.directory /src
 COPY . .
