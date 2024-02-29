@@ -8,4 +8,5 @@ pushd deploy/kubernetes-conjur-deploy
 popd
 
 helm uninstall external-secrets -n "$ESO_NAMESPACE_NAME"
+helm uninstall postgresql -n "$APP_NAMESPACE_NAME"
 $cli delete ns "$APP_NAMESPACE_NAME" "$ESO_NAMESPACE_NAME"

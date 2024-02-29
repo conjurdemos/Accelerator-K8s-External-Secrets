@@ -114,6 +114,10 @@ function run_docker_cmd() {
     -e CONJUR_HOST_ID \
     -e CONJUR_LOG_LEVEL \
     -e CONJUR_NAMESPACE_NAME \
+    -e DB_PASSWORD \
+    -e DB_PLATFORM \
+    -e DB_TABLE \
+    -e DB_USERNAME \
     -e DEPLOY_MASTER_CLUSTER \
     -e DEV \
     -e DOCKER_REGISTRY_PATH \

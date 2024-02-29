@@ -6,6 +6,7 @@ source ./bin/utils
 conjur_dir="$(repo_root)/deploy/kubernetes-conjur-deploy"
 policy_dir="$(repo_root)/policy"
 manifest_dir="$(repo_root)/manifest"
+db_config_dir="$(repo_root)/deploy/db"
 
 function cleanup {
   pushd "$(repo_root)"
@@ -59,6 +60,10 @@ pushd "$policy_dir"
     APP_NAMESPACE_NAME=${APP_NAMESPACE_NAME} \
     AUTHENTICATOR_ID=${AUTHENTICATOR_ID} \
     CONJUR_NAMESPACE_NAME=${CONJUR_NAMESPACE_NAME} \
+    DB_PASSWORD=${DB_PASSWORD} \
+    DB_PLATFORM=${DB_PLATFORM} \
+    DB_URL="postgresql://db.${APP_NAMESPACE_NAME}.svc.cluster.local:5432/${DB_TABLE}" \
+    DB_USERNAME=${DB_USERNAME} \
     ISSUER=${ISSUER} \
     /policy/load_policies.sh
   "
@@ -96,6 +101,7 @@ pushd "$manifest_dir"
   ./templates/service-account-secret.yml.template.sh   > ./generated/$APP_NAMESPACE_NAME.service-account-secret.yml
   ./templates/api-key-provider.yml.template.sh         > ./generated/$APP_NAMESPACE_NAME.api-key-provider.yml
   ./templates/external-secret.yml.template.sh          > ./generated/$APP_NAMESPACE_NAME.external-secret.yml
+  ./templates/demo-app.yml.template.sh                 > ./generated/$APP_NAMESPACE_NAME.demo-app.yml
 
   announce "Configuring application namespace"
 
@@ -105,6 +111,35 @@ pushd "$manifest_dir"
   $cli apply -n "$APP_NAMESPACE_NAME" -f ./generated/$APP_NAMESPACE_NAME.service-account-secret.yml
 popd
 
+pushd "$db_config_dir"
+  announce "Deploying demo app backend"
+
+  helm repo add bitnami https://charts.bitnami.com/bitnami
+  helm repo update
+  helm install postgresql bitnami/postgresql -n "$APP_NAMESPACE_NAME" \
+    --wait \
+    --timeout "5m" \
+    --set "auth.username=$DB_USERNAME" \
+    --set "auth.password=$DB_PASSWORD" \
+    --set "auth.database=$DB_TABLE" \
+    --values "./values.${PLATFORM}.yml"
+popd
+
 if [[ "$DEV" != "true" ]]; then
   go test -v ./e2e
+else
+  announce "Setting up demo environment"
+
+  pushd "$manifest_dir"
+    $cli apply -n "$APP_NAMESPACE_NAME" -f ./generated/$APP_NAMESPACE_NAME.api-key-provider.yml
+    $cli apply -n "$APP_NAMESPACE_NAME" -f ./generated/$APP_NAMESPACE_NAME.external-secret.yml
+    $cli apply -n "$APP_NAMESPACE_NAME" -f ./generated/$APP_NAMESPACE_NAME.demo-app.yml
+    $cli apply -n "$APP_NAMESPACE_NAME" -f ./curl.yml
+  popd
+
+  $cli exec curl -n "$APP_NAMESPACE_NAME" -- curl \
+    -X POST \
+    -H 'Content-Type: application/json' \
+    --data '{"name":"Accelerator Alice"}' \
+    "http://demo-app.$APP_NAMESPACE_NAME.svc.cluster.local:8080/pet"
 fi

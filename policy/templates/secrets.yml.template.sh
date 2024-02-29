@@ -8,6 +8,10 @@ cat << EOL
   body:
     - &variables
       - !variable test_secret
+      - !variable db/url
+      - !variable db/username
+      - !variable db/password
+      - !variable db/platform
 
     - !layer users
 

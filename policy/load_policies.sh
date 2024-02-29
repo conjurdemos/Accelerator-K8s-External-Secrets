@@ -24,3 +24,7 @@ conjur variable set -i "conjur/authn-jwt/$AUTHENTICATOR_ID/audience" -v "https:/
 
 # Load test secrets
 conjur variable set -i "secrets/test_secret" -v "MyS3cretContent!"
+conjur variable set -i "secrets/db/url" -v "$DB_URL"
+conjur variable set -i "secrets/db/username" -v "$DB_USERNAME"
+conjur variable set -i "secrets/db/password" -v "$DB_PASSWORD"
+conjur variable set -i "secrets/db/platform" -v "$DB_PLATFORM"

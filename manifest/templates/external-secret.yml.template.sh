@@ -14,10 +14,19 @@ spec:
     name: conjur-api-key
     kind: SecretStore
   target:
-    name: target-secret
+    name: db-credentials
     creationPolicy: Owner
   data:
-  - secretKey: secret-key
+  - secretKey: url
     remoteRef:
-      key: secrets/test_secret
+      key: secrets/db/url
+  - secretKey: username
+    remoteRef:
+      key: secrets/db/username
+  - secretKey: password
+    remoteRef:
+      key: secrets/db/password
+  - secretKey: platform
+    remoteRef:
+      key: secrets/db/platform
 EOL

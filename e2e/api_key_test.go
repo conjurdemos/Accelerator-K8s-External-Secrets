@@ -9,6 +9,7 @@ import (
 	"github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/e2e-framework/klient/wait"
 	"sigs.k8s.io/e2e-framework/pkg/envconf"
 	"sigs.k8s.io/e2e-framework/pkg/features"
@@ -25,17 +26,37 @@ func TestApiKey(t *testing.T) {
 
 			// Create API key based SecretStore
 			var secretStore v1beta1.SecretStore
-			err = ParseManifest(fmt.Sprintf("%s.api-key-provider.yml", TestNamespace), &secretStore)
-			assert.NoError(t, err)
-
-			err = c.Client().Resources(TestNamespace).Create(ctx, &secretStore)
+			err = Reload(ctx, c.Client(), fmt.Sprintf("%s.api-key-provider.yml", TestNamespace), &secretStore)
 			assert.NoError(t, err)
 
 			// Create ExternalSecret
-			var externalSecret v1beta1.ExternalSecret
-			err = ParseManifest(fmt.Sprintf("%s.external-secret.yml", TestNamespace), &externalSecret)
-			assert.NoError(t, err)
-
+			externalSecret := v1beta1.ExternalSecret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-external-secret",
+					Namespace: TestNamespace,
+				},
+				Spec: v1beta1.ExternalSecretSpec{
+					RefreshInterval: &metav1.Duration{
+						Duration: time.Duration(10) * time.Second,
+					},
+					SecretStoreRef: v1beta1.SecretStoreRef{
+						Kind: "SecretStore",
+						Name: secretStore.Name,
+					},
+					Target: v1beta1.ExternalSecretTarget{
+						Name:           "target-secret",
+						CreationPolicy: "Owner",
+					},
+					Data: []v1beta1.ExternalSecretData{
+						{
+							SecretKey: "secret-key",
+							RemoteRef: v1beta1.ExternalSecretDataRemoteRef{
+								Key: "secrets/test_secret",
+							},
+						},
+					},
+				},
+			}
 			err = c.Client().Resources(TestNamespace).Create(ctx, &externalSecret)
 			assert.NoError(t, err)
 

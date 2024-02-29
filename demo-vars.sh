@@ -39,6 +39,14 @@ export ESO_NAMESPACE_NAME=external-secrets-$UNIQUE_TEST_ID
 export APP_SERVICE_ACCOUNT_NAME=test-app-sa
 
 #######
+# Default demo app database configuration
+#######
+export DB_PASSWORD="P0stgre5P@ss%"
+export DB_PLATFORM=postgres
+export DB_TABLE=demo-app
+export DB_USERNAME=db-user
+
+#######
 # Local dev env (uncomment all lines if using this configuration)
 # Uses current kubectl context. Be sure to target your local cluster.
 #######
