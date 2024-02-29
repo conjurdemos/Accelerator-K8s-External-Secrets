@@ -1,1 +1,62 @@
-# accelerator-k8s-external-secrets
+# Accelerator: Conjur and External Secrets Operator
+
+This accelerator simulates a real-world end-to-end workflow where
+[External Secrets Operator](https://external-secrets.io/latest/) is used to
+deliver secrets stored in Conjur Enterprise to an application running in
+Kubernetes.
+
+## Prerequisites
+
+| Dependency                | Minimum Version |
+|---------------------------|-----------------|
+| Kubernetes                | 1.19.0          |
+| External Secrets Operator | 0.9.0           |
+| Conjur Enterprise         | 12.5            |
+
+## Part I: Setup
+
+Update `demo-vars.sh` with the appropriate values. Notable settings include:
+
+| Environment Variable     | Description |
+|--------------------------|-------------|
+| `CONJUR_APPLIANCE_IMAGE` | Image used to deploy a Conjur Appliance leader and follower to Kubernetes. |
+| `DEV` | Keep the environment running until it's stopped. Set to `true` for an interactive environment. |
+| `LOCAL` | Run the demo workflow against a local K8s cluster. |
+| `RUN_IN_DOCKER` | Run the demo workflow from a Docker container with `kubectl`, `oc`, and other required tools installed. |
+| `PLATFORM` | Set to either `kubernetes` or `openshift`. |
+
+Update `secrets.yml` with the appropriate values:
+
+| Desired Outcome | Required Environment Variables |
+|-----------------|--------------------------------|
+| Install demo to GKE cluster | <ul><li>`GCLOUD_CLUSTER_NAME`<li>`GCLOUD_ZONE`<li>`GCLOUD_PROJECT_NAME`<li>`GCLOUD_SERVICE_KEY`</ul> |
+| Install demo to Openshift cluster | <ul><li>`OPENSHIFT_VERSION`<li>`OPENSHIFT_URL`<li>`OPENSHIFT_USERNAME`<li>`OPENSHIFT_PASSWORD`<li>`OSHIFT_CLUSTER_ADMIN_USERNAME`<li>`OSHIFT_CONJUR_ADMIN_USERNAME`</ul> |
+
+## Part II: Start
+
+Begin the demo workflow by running:
+
+```sh
+./bin/start
+```
+
+The script performs the following:
+1. Deploys a Conjur Enterprise leader and follower
+   1. Creates a batch of secrets representing a connection to an external database
+   2. Creates and configures a JWT Authenticator instance
+2. Deploys External Secrets Operator
+3. Deploys a PostgreSQL database
+4. Creates the following K8s resources:
+   - ServiceAccount and associated Secret
+   - Secret containing a Conjur host ID, API key, and SSL certificate
+   - [SecretStore](https://external-secrets.io/latest/api/secretstore/)
+     that is
+     [configured for API key authentication](https://external-secrets.io/latest/provider/conjur/#external-secret-store-definition-with-apikey-authentication)
+   - [ExternalSecret](https://external-secrets.io/latest/api/externalsecret/)
+     mapping
+     [Conjur secrets to a K8s Secret](https://external-secrets.io/latest/provider/conjur/#create-external-secret-definition)
+5. Deploys a Pet Store demo application that connects to the PostgreSQL database
+   using the secrets delivered from Conjur by External Secrets Operator
+
+Once the demo application is deployed, use the Pet Store as described
+[here](https://github.com/conjurdemos/pet-store-demo/blob/main/README.md).
