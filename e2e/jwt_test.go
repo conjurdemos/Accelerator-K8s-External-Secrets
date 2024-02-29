@@ -14,24 +14,24 @@ import (
 	"sigs.k8s.io/e2e-framework/pkg/features"
 )
 
-func TestApiKey(t *testing.T) {
+func TestJWT(t *testing.T) {
 	var (
 		secretStore    v1beta1.SecretStore
 		externalSecret v1beta1.ExternalSecret
 	)
 
-	f := features.New("Conjur & ESO integration using API key authentication").
+	f := features.New("Conjur & ESO integration using JWT authentication").
 		Setup(func(ctx context.Context, t *testing.T, c *envconf.Config) context.Context {
-			// Create API key based SecretStore
-			err := Reload(ctx, c.Client(), fmt.Sprintf("%s.api-key-provider.yml", TestNamespace), &secretStore)
+			// Create JWT based SecretStore
+			err := Reload(ctx, c.Client(), fmt.Sprintf("%s.jwt-provider.yml", TestNamespace), &secretStore)
 			assert.NoError(t, err)
 
 			// Create ExternalSecret
 			externalSecret = NewExternalSecret(
-				"external-secret-api-key",
+				"external-secret-jwt",
 				TestNamespace,
 				secretStore.Name,
-				"target-secret-api-key",
+				"target-secret-jwt",
 				map[string]string{
 					"secret-key": "secrets/test_secret",
 				},
@@ -53,7 +53,7 @@ func TestApiKey(t *testing.T) {
 		Assess("K8s Secret set correctly with Conjur Secret data", func(ctx context.Context, t *testing.T, c *envconf.Config) context.Context {
 			// Check content of created Secret
 			var targetSecret corev1.Secret
-			err := c.Client().Resources(TestNamespace).Get(ctx, "target-secret-api-key", TestNamespace, &targetSecret)
+			err := c.Client().Resources(TestNamespace).Get(ctx, "target-secret-jwt", TestNamespace, &targetSecret)
 			assert.NoError(t, err)
 			assert.Equal(t, []byte("MyS3cretContent!"), targetSecret.Data["secret-key"])
 
