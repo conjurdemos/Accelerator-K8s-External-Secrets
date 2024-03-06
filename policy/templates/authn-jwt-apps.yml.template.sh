@@ -12,13 +12,13 @@ cat << EOL
 
     - &hosts
       - !host
-        id: system:serviceaccount:${APP_NAMESPACE_NAME}:test-app-sa
+        id: system:serviceaccount:${APP_NAMESPACE_NAME}:${APP_SERVICE_ACCOUNT_NAME}
         annotations:
-          authn-jwt/${AUTHENTICATOR_ID}/sub: system:serviceaccount:${APP_NAMESPACE_NAME}:test-app-sa
+          authn-jwt/${AUTHENTICATOR_ID}/sub: system:serviceaccount:${APP_NAMESPACE_NAME}:${APP_SERVICE_ACCOUNT_NAME}
 
       # This host will not have permissions on Conjur secrets to test this use-case
       - !host
-        id: ${APP_NAMESPACE_NAME}/service_account/${APP_NAMESPACE_NAME}:test-app-sa
+        id: ${APP_NAMESPACE_NAME}/service_account/${APP_NAMESPACE_NAME}:${APP_SERVICE_ACCOUNT_NAME}
 
     - !grant
         role: !layer

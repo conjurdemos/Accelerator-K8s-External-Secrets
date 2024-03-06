@@ -8,6 +8,10 @@ cat << EOL
   body:
     - &variables
       - !variable test_secret
+      - !variable db/url
+      - !variable db/username
+      - !variable db/password
+      - !variable db/platform
 
     - !layer users
 
@@ -19,5 +23,10 @@ cat << EOL
 - !grant
   role: !layer secrets/users
   members:
-    - !host conjur/authn-jwt/${AUTHENTICATOR_ID}/apps/system:serviceaccount:${APP_NAMESPACE_NAME}:test-app-sa
+    - !host conjur/authn-jwt/${AUTHENTICATOR_ID}/apps/system:serviceaccount:${APP_NAMESPACE_NAME}:${APP_SERVICE_ACCOUNT_NAME}
+
+- !grant
+  role: !layer secrets/users
+  members:
+    - !host ${CONJUR_HOST_ID}
 EOL

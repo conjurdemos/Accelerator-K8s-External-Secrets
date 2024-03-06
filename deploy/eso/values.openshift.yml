@@ -1,0 +1,23 @@
+extraArgs:
+  loglevel: debug
+
+securityContext:
+  seccompProfile: null
+
+serviceAccount:
+  create: true
+  name: external-secrets
+
+certController:
+  securityContext:
+    seccompProfile: null
+  serviceAccount:
+    create: false
+    name: external-secrets
+
+webhook:
+  securityContext:
+    seccompProfile: null
+  serviceAccount:
+    create: false
+    name: external-secrets

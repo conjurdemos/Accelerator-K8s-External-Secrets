@@ -5,10 +5,12 @@ source ./bin/utils
 
 conjur_dir="$(repo_root)/deploy/kubernetes-conjur-deploy"
 policy_dir="$(repo_root)/policy"
+manifest_dir="$(repo_root)/manifest"
+db_config_dir="$(repo_root)/deploy/db"
 
 function cleanup {
-  pushd "$conjur_dir"
-    ./stop
+  pushd "$(repo_root)"
+    ./bin/stop
   popd
 }
 trap cleanup ERR
@@ -29,6 +31,9 @@ pushd "$conjur_dir"
 
   ./start
   export DEV=$old_dev
+
+  # Now that Conjur Enterprise is deployed, store the SSL cert in an envvar
+  export CONJUR_CERTIFICATE="$(conjur_ssl_cert)"
 popd
 
 pushd "$policy_dir"
@@ -37,6 +42,7 @@ pushd "$policy_dir"
   mkdir -p ./generated
   ./templates/authn-jwt.yml.template.sh      > ./generated/$APP_NAMESPACE_NAME.authn-jwt.yml
   ./templates/authn-jwt-apps.yml.template.sh > ./generated/$APP_NAMESPACE_NAME.authn-jwt-apps.yml
+  ./templates/hosts.yml.template.sh          > ./generated/$APP_NAMESPACE_NAME.hosts.yml
   ./templates/secrets.yml.template.sh        > ./generated/$APP_NAMESPACE_NAME.secrets.yml
 
   announce "Loading Conjur policy and configuring AuthnJWT"
@@ -45,7 +51,7 @@ pushd "$policy_dir"
   JWKS_URI="$($cli get --raw /.well-known/openid-configuration | jq -r '.jwks_uri')"
   $cli get --raw "$JWKS_URI" > jwks.json
 
-  cli_pod="$(conjur_cli_pod_name)"
+  cli_pod="$(pod_name "$CONJUR_NAMESPACE_NAME" 'app=conjur-cli')"
   $cli exec "$cli_pod" -- rm -rf /policy
   $cli cp "$policy_dir" "$cli_pod:/policy"
 
@@ -54,7 +60,86 @@ pushd "$policy_dir"
     APP_NAMESPACE_NAME=${APP_NAMESPACE_NAME} \
     AUTHENTICATOR_ID=${AUTHENTICATOR_ID} \
     CONJUR_NAMESPACE_NAME=${CONJUR_NAMESPACE_NAME} \
+    DB_PASSWORD=${DB_PASSWORD} \
+    DB_PLATFORM=${DB_PLATFORM} \
+    DB_URL="postgresql://db.${APP_NAMESPACE_NAME}.svc.cluster.local:5432/${DB_TABLE}" \
+    DB_USERNAME=${DB_USERNAME} \
     ISSUER=${ISSUER} \
     /policy/load_policies.sh
   "
+
+  # Now that test Conjur resources have been created, store the API key for
+  # host $CONJUR_HOST_ID in an envvar
+  export CONJUR_HOST_API_KEY="$(rotate_host_api_key "$CONJUR_HOST_ID")"
 popd
+
+announce "Installing External Secrets Operator"
+
+helm repo add external-secrets https://charts.external-secrets.io
+helm repo update
+
+if [[ "$PLATFORM" == "openshift" ]]; then
+  $cli adm policy add-scc-to-user \
+    anyuid \
+    "system:serviceaccount:$ESO_NAMESPACE_NAME:external-secrets"
+fi
+
+helm install external-secrets external-secrets/external-secrets \
+  -n "$ESO_NAMESPACE_NAME" \
+  --create-namespace \
+  --wait \
+  --timeout "5m" \
+  --set extraArgs.loglevel=debug \
+  --values "./deploy/eso/values.${PLATFORM}.yml"
+
+pushd "$manifest_dir"
+  announce "Generate manifests for test configuration"
+
+  mkdir -p ./generated
+  ./templates/conjur-connection-secret.yml.template.sh > ./generated/$APP_NAMESPACE_NAME.conjur-connection-secret.yml
+  ./templates/service-account.yml.template.sh          > ./generated/$APP_NAMESPACE_NAME.service-account.yml
+  ./templates/service-account-secret.yml.template.sh   > ./generated/$APP_NAMESPACE_NAME.service-account-secret.yml
+  ./templates/api-key-provider.yml.template.sh         > ./generated/$APP_NAMESPACE_NAME.api-key-provider.yml
+  ./templates/external-secret.yml.template.sh          > ./generated/$APP_NAMESPACE_NAME.external-secret.yml
+  ./templates/demo-app.yml.template.sh                 > ./generated/$APP_NAMESPACE_NAME.demo-app.yml
+
+  announce "Configuring application namespace"
+
+  $cli create namespace "$APP_NAMESPACE_NAME"
+  $cli apply -n "$APP_NAMESPACE_NAME" -f ./generated/$APP_NAMESPACE_NAME.service-account.yml
+  $cli apply -n "$APP_NAMESPACE_NAME" -f ./generated/$APP_NAMESPACE_NAME.conjur-connection-secret.yml
+  $cli apply -n "$APP_NAMESPACE_NAME" -f ./generated/$APP_NAMESPACE_NAME.service-account-secret.yml
+popd
+
+pushd "$db_config_dir"
+  announce "Deploying demo app backend"
+
+  helm repo add bitnami https://charts.bitnami.com/bitnami
+  helm repo update
+  helm install postgresql bitnami/postgresql -n "$APP_NAMESPACE_NAME" \
+    --wait \
+    --timeout "5m" \
+    --set "auth.username=$DB_USERNAME" \
+    --set "auth.password=$DB_PASSWORD" \
+    --set "auth.database=$DB_TABLE" \
+    --values "./values.${PLATFORM}.yml"
+popd
+
+if [[ "$DEV" != "true" ]]; then
+  go test -v ./e2e
+else
+  announce "Setting up demo environment"
+
+  pushd "$manifest_dir"
+    $cli apply -n "$APP_NAMESPACE_NAME" -f ./generated/$APP_NAMESPACE_NAME.api-key-provider.yml
+    $cli apply -n "$APP_NAMESPACE_NAME" -f ./generated/$APP_NAMESPACE_NAME.external-secret.yml
+    $cli apply -n "$APP_NAMESPACE_NAME" -f ./generated/$APP_NAMESPACE_NAME.demo-app.yml
+    $cli apply -n "$APP_NAMESPACE_NAME" -f ./curl.yml
+  popd
+
+  $cli exec curl -n "$APP_NAMESPACE_NAME" -- curl \
+    -X POST \
+    -H 'Content-Type: application/json' \
+    --data '{"name":"Accelerator Alice"}' \
+    "http://demo-app.$APP_NAMESPACE_NAME.svc.cluster.local:8080/pet"
+fi

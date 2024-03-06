@@ -25,18 +25,19 @@ function build_test_runner_image() {
 }
 
 function configure_conjur_cli() {
+  cli_pod="$(pod_name "$CONJUR_NAMESPACE_NAME" 'app=conjur-cli')"
   conjur_url="https://conjur-master.$CONJUR_NAMESPACE_NAME.svc.cluster.local/api"
-  $cli exec "$(conjur_cli_pod_name)" -- sh -c "
+  $cli exec "$cli_pod" -n "$CONJUR_NAMESPACE_NAME" -- sh -c "
     echo y | conjur init -a $CONJUR_ACCOUNT -u $conjur_url --self-signed --force
     conjur login -i admin -p $CONJUR_ADMIN_PASSWORD
   "
 }
 
-function conjur_cli_pod_name() {
-  $cli get pods \
-    --namespace "$CONJUR_NAMESPACE_NAME" \
-    --selector 'app=conjur-cli' \
-    -o jsonpath='{.items[].metadata.name}'
+function conjur_ssl_cert() {
+  follower_pod="$(pod_name $CONJUR_NAMESPACE_NAME 'role=follower')"
+  $cli exec "$follower_pod" -n "$CONJUR_NAMESPACE_NAME" -- /bin/bash -c "
+    cat /opt/conjur/etc/ssl/conjur.pem
+  "
 }
 
 function repo_root() {
@@ -45,6 +46,35 @@ function repo_root() {
     root_dir="$(git rev-parse --show-toplevel)"
   fi
   echo "$root_dir"
+}
+
+function rotate_host_api_key() {
+  local host_id="${1:-}"
+
+  cli_pod="$(pod_name "$CONJUR_NAMESPACE_NAME" 'app=conjur-cli')"
+  $cli exec "$cli_pod" -n "$CONJUR_NAMESPACE_NAME" -- sh -c "
+    conjur host rotate-api-key --id $CONJUR_ACCOUNT:host:$host_id
+  "
+}
+
+function pod_name() {
+  local namespace="$1"
+  local selector="$2"
+
+  pod_name="$(
+    $cli get pods \
+      --namespace $namespace \
+      --selector $selector \
+      -o jsonpath='{.items[].metadata.name}'
+  )"
+
+  if [[ -z "$pod_name" ]]; then
+    echo "Unable to find $selector in namespace $namespace. Exiting."
+    $cli describe pods --namespace $namespace
+    exit 1
+  fi
+
+  echo "$pod_name"
 }
 
 function run_docker_cmd() {
@@ -71,19 +101,28 @@ function run_docker_cmd() {
   docker run -i \
     $additional_flags \
     -e APP_NAMESPACE_NAME \
+    -e APP_SERVICE_ACCOUNT_NAME \
     -e AUTHENTICATOR_ID \
     -e CONJUR_ACCOUNT \
     -e CONJUR_ADMIN_PASSWORD \
     -e CONJUR_APPLIANCE_IMAGE \
     -e CONJUR_AUTHENTICATORS \
+    -e CONJUR_CERTIFICATE \
     -e CONJUR_DEPLOYMENT \
     -e CONJUR_FOLLOWER_COUNT \
+    -e CONJUR_HOST_API_KEY \
+    -e CONJUR_HOST_ID \
     -e CONJUR_LOG_LEVEL \
     -e CONJUR_NAMESPACE_NAME \
+    -e DB_PASSWORD \
+    -e DB_PLATFORM \
+    -e DB_TABLE \
+    -e DB_USERNAME \
     -e DEPLOY_MASTER_CLUSTER \
     -e DEV \
     -e DOCKER_REGISTRY_PATH \
     -e DOCKER_REGISTRY_URL \
+    -e ESO_NAMESPACE_NAME \
     -e IMAGE_PULL_SECRET \
     -e LOCAL \
     -e LOCAL_AUTHENTICATOR \

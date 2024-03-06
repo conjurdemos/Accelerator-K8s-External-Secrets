@@ -5,6 +5,7 @@ readonly POLICY_DIR="/policy"
 
 # NOTE: generated files are prefixed with the test app namespace to allow for parallel CI
 set -- "$POLICY_DIR/users.yml" \
+  "$POLICY_DIR/generated/$APP_NAMESPACE_NAME.hosts.yml" \
   "$POLICY_DIR/generated/$APP_NAMESPACE_NAME.authn-jwt.yml" \
   "$POLICY_DIR/generated/$APP_NAMESPACE_NAME.authn-jwt-apps.yml" \
   "$POLICY_DIR/generated/$APP_NAMESPACE_NAME.secrets.yml" \
@@ -20,3 +21,10 @@ conjur variable set -i "conjur/authn-jwt/$AUTHENTICATOR_ID/issuer" -v "$ISSUER"
 conjur variable set -i "conjur/authn-jwt/$AUTHENTICATOR_ID/public-keys" -v "{\"type\":\"jwks\", \"value\":$(cat /policy/jwks.json)}"
 conjur variable set -i "conjur/authn-jwt/$AUTHENTICATOR_ID/identity-path" -v "conjur/authn-jwt/$AUTHENTICATOR_ID/apps"
 conjur variable set -i "conjur/authn-jwt/$AUTHENTICATOR_ID/audience" -v "https://conjur-follower.$CONJUR_NAMESPACE_NAME.svc.cluster.local"
+
+# Load test secrets
+conjur variable set -i "secrets/test_secret" -v "MyS3cretContent!"
+conjur variable set -i "secrets/db/url" -v "$DB_URL"
+conjur variable set -i "secrets/db/username" -v "$DB_USERNAME"
+conjur variable set -i "secrets/db/password" -v "$DB_PASSWORD"
+conjur variable set -i "secrets/db/platform" -v "$DB_PLATFORM"
