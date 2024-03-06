@@ -3,10 +3,32 @@ cd "$(git rev-parse --show-toplevel)"
 source demo-vars.sh
 source ./bin/utils
 
+set +euo pipefail
+
 pushd deploy/kubernetes-conjur-deploy
   ./stop
 popd
 
-helm uninstall external-secrets -n "$ESO_NAMESPACE_NAME"
 helm uninstall postgresql -n "$APP_NAMESPACE_NAME"
-$cli delete ns "$APP_NAMESPACE_NAME" "$ESO_NAMESPACE_NAME"
+$cli delete ns "$APP_NAMESPACE_NAME"
+
+rm -f ./manifest/generated/$APP_NAMESPACE_NAME.* \
+      ./policy/generated/$APP_NAMESPACE_NAME.*
+
+# ESO Helm chart can only be installed once per K8s cluster. This is causing
+# failures when pipelines are built simultaneously. We need to install the ESO
+# Helm chart to a single, predetermined namespace, and reach a consensus before
+# uninstalling it.
+if [[ "$DEV" == "false" ]]; then
+  $cli label namespace "$ESO_NAMESPACE_NAME" "conjur.org/$UNIQUE_TEST_ID=DONE" --overwrite
+
+  for ((i = 0; i < 5; i++)); do
+    if eso_unused; then
+      helm uninstall eso -n "$ESO_NAMESPACE_NAME"
+      $cli delete ns "$ESO_NAMESPACE_NAME"
+      break
+    else
+      sleep 2
+    fi
+  done
+fi

@@ -35,7 +35,7 @@ export TEST_PLATFORM=gke
 #######
 export CONJUR_NAMESPACE_NAME=accelerator-conjur-$UNIQUE_TEST_ID
 export APP_NAMESPACE_NAME=accelerator-apps-$UNIQUE_TEST_ID
-export ESO_NAMESPACE_NAME=external-secrets-$UNIQUE_TEST_ID
+export ESO_NAMESPACE_NAME=accelerator-external-secrets
 export APP_SERVICE_ACCOUNT_NAME=test-app-sa
 
 #######

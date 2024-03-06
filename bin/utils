@@ -48,6 +48,32 @@ function repo_root() {
   echo "$root_dir"
 }
 
+function eso_unused() {
+  echo "Polling for labels on namespace $ESO_NAMESPACE_NAME..."
+
+  labels="$(kubectl get ns "$ESO_NAMESPACE_NAME" -o jsonpath='{.metadata.labels}')"
+  conjur_labels="$(
+    echo "$labels" | \
+    jq -r '. | with_entries(select(.key | startswith("conjur.org/")))'
+  )"
+  keys="$(
+    echo "$conjur_labels" | \
+    jq -r 'keys[]'
+  )"
+
+  echo "Found labels $conjur_labels"
+
+  for key in $keys; do
+    value="$(echo "$conjur_labels" | jq -r ."\"$key\"")"
+    if [[ "$value" != "DONE" ]]; then
+      echo "Test suite with UNIQUE_TEST_ID=$value still PENDING"
+      return 1
+    fi
+  done
+
+  return 0
+}
+
 function rotate_host_api_key() {
   local host_id="${1:-}"
 
