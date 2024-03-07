@@ -84,13 +84,27 @@ if [[ "$PLATFORM" == "openshift" ]]; then
     "system:serviceaccount:$ESO_NAMESPACE_NAME:external-secrets"
 fi
 
-helm install external-secrets external-secrets/external-secrets \
-  -n "$ESO_NAMESPACE_NAME" \
-  --create-namespace \
-  --wait \
-  --timeout "5m" \
-  --set extraArgs.loglevel=debug \
-  --values "./deploy/eso/values.${PLATFORM}.yml"
+# ESO Helm chart can only be installed once per K8s cluster, which caused
+# failures when pipelines are built simultaneously. Given this, we need to
+# install the ESO Helm chart to a single namespace, and reach a consensus before
+# uninstalling it.
+if helm list -n "$ESO_NAMESPACE_NAME" | grep -q eso; then
+  echo "ESO Helm chart already installed - skipping"
+else
+  helm install eso external-secrets/external-secrets \
+    -n "$ESO_NAMESPACE_NAME" \
+    --create-namespace \
+    --wait \
+    --timeout "5m" \
+    --values "./deploy/eso/values.${PLATFORM}.yml"
+fi
+
+# The mechanism to determine consensus are unique labels on the ESO namespace,
+# formatted 'conjur.org/$UNIQUE_TEST_ID'. Each pipeline will add its own unique
+# label set to 'PENDING', and set it to 'DONE' once it consents to uninstalling.
+if [[ "$DEV" == "false" ]]; then
+  $cli label namespace "$ESO_NAMESPACE_NAME" "conjur.org/$UNIQUE_TEST_ID=PENDING"
+fi
 
 pushd "$manifest_dir"
   announce "Generate manifests for test configuration"

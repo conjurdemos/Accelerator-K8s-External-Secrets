@@ -3,10 +3,56 @@ cd "$(git rev-parse --show-toplevel)"
 source demo-vars.sh
 source ./bin/utils
 
+set +euo pipefail
+
 pushd deploy/kubernetes-conjur-deploy
   ./stop
 popd
 
-helm uninstall external-secrets -n "$ESO_NAMESPACE_NAME"
 helm uninstall postgresql -n "$APP_NAMESPACE_NAME"
-$cli delete ns "$APP_NAMESPACE_NAME" "$ESO_NAMESPACE_NAME"
+$cli delete ns "$APP_NAMESPACE_NAME"
+
+rm -f ./manifest/generated/$APP_NAMESPACE_NAME.* \
+      ./policy/generated/$APP_NAMESPACE_NAME.*
+
+# ESO Helm chart can only be installed once per K8s cluster, which caused
+# failures when pipelines are built simultaneously. Given this, we need to
+# install the ESO Helm chart to a single namespace, and reach a consensus before
+# uninstalling it.
+#
+# The mechanism to determine consensus are unique labels on the ESO namespace,
+# formatted 'conjur.org/$UNIQUE_TEST_ID'. Each pipeline will add its own unique
+# label set to 'PENDING', and set it to 'DONE' once it consents to uninstalling.
+#
+# Each pipeline will check for consensus once they've finished using ESO - the
+# first to discover consensus will uninstall the ESO Helm chart and delete the
+# namespace.
+if [[ "$DEV" == "false" ]]; then
+  $cli label namespace "$ESO_NAMESPACE_NAME" "conjur.org/$UNIQUE_TEST_ID=DONE" --overwrite
+
+  previously_uninstalled="false"
+  uninstalled="false"
+
+  for ((i = 0; i < 5; i++)); do
+    if ! eso_installed; then
+      previously_uninstalled="true"
+      break
+    elif eso_unused; then
+      helm uninstall eso -n "$ESO_NAMESPACE_NAME"
+      $cli delete ns "$ESO_NAMESPACE_NAME"
+      uninstalled="true"
+      break
+    else
+      sleep 2
+    fi
+  done
+
+  if [[ "$previously_uninstalled" == "true" ]]; then
+    echo "ESO Helm chart already uninstalled from namespace $ESO_NAMESPACE_NAME"
+  elif [[ "$uninstalled" == "true" ]]; then
+    echo "Uninstalled ESO Helm chart from namespace $ESO_NAMESPACE_NAME"
+  else
+    echo "ESO Helm chart not uninstalled!"
+    echo "It will be uninstalled by another PENDING pipeline"
+  fi
+fi
