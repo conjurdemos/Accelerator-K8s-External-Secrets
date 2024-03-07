@@ -114,6 +114,7 @@ pushd "$manifest_dir"
   ./templates/service-account.yml.template.sh          > ./generated/$APP_NAMESPACE_NAME.service-account.yml
   ./templates/service-account-secret.yml.template.sh   > ./generated/$APP_NAMESPACE_NAME.service-account-secret.yml
   ./templates/api-key-provider.yml.template.sh         > ./generated/$APP_NAMESPACE_NAME.api-key-provider.yml
+  ./templates/jwt-provider.yml.template.sh             > ./generated/$APP_NAMESPACE_NAME.jwt-provider.yml
   ./templates/external-secret.yml.template.sh          > ./generated/$APP_NAMESPACE_NAME.external-secret.yml
   ./templates/demo-app.yml.template.sh                 > ./generated/$APP_NAMESPACE_NAME.demo-app.yml
 
