@@ -48,6 +48,10 @@ function repo_root() {
   echo "$root_dir"
 }
 
+function eso_installed() {
+  helm list -n "$ESO_NAMESPACE_NAME" | grep -q eso
+}
+
 function eso_unused() {
   echo "Polling for labels on namespace $ESO_NAMESPACE_NAME..."
 
@@ -63,15 +67,16 @@ function eso_unused() {
 
   echo "Found labels $conjur_labels"
 
+  used=0
   for key in $keys; do
     value="$(echo "$conjur_labels" | jq -r ."\"$key\"")"
     if [[ "$value" != "DONE" ]]; then
-      echo "Test suite with UNIQUE_TEST_ID=$value still PENDING"
-      return 1
+      used=1
+      echo "Test suite with UNIQUE_TEST_ID=$(echo "$key" | cut -d/ -f2) still PENDING!"
     fi
   done
 
-  return 0
+  return $used
 }
 
 function rotate_host_api_key() {
