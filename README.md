@@ -3,7 +3,16 @@
 This accelerator simulates a real-world end-to-end workflow where
 [External Secrets Operator](https://external-secrets.io/latest/) is used to
 deliver secrets stored in Conjur Enterprise to an application running in
-Kubernetes.
+Kubernetes. It can be used as a starting point for integrating Conjur with
+External Secrets Operator.
+
+## Certification Level
+
+![](https://img.shields.io/badge/Certification%20Level-Certified-28A745?link=https://github.com/cyberark/community/blob/master/Conjur/conventions/certification-levels.md)
+
+This repo is a **Certified** level project. It's been reviewed by CyberArk to verify that it will securely
+work with CyberArk Conjur Enterprise as documented. In addition, CyberArk offers Enterprise-level support for these features. For
+more detailed  information on our certification levels, see [our community guidelines](https://github.com/cyberark/community/blob/master/Conjur/conventions/certification-levels.md#community).
 
 ## Prerequisites
 
@@ -60,3 +69,28 @@ The script performs the following:
 
 Once the demo application is deployed, use the Pet Store as described
 [here](https://github.com/conjurdemos/pet-store-demo/blob/main/README.md).
+
+## Contributing
+
+We welcome contributions of all kinds to this repository. For instructions on how to get
+started and descriptions of our development workflows, please see our [contributing
+guide][contrib].
+[contrib]: CONTRIBUTING.md
+
+## License
+
+Copyright (c) 2024 CyberArk Software Ltd. All rights reserved.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+For the full license text see [`LICENSE`](LICENSE).
