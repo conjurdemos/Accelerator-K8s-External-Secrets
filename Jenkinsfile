@@ -12,7 +12,7 @@ properties([
 // Performs release promotion.  No other stages will be run
 if (params.MODE == "PROMOTE") {
   // Copy Github Enterprise commit to Github
-  release.copyEnterpriseCommit()
+  release.copyEnterpriseCommit('conjurdemos')
   return
 }
 
