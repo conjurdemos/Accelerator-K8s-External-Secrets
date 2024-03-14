@@ -50,7 +50,7 @@ pipeline {
           branches: [[name: '*/master']],
           doGenerateSubmoduleConfigurations: scm.doGenerateSubmoduleConfigurations,
           extensions: [[$class: 'CloneOption', noTags: false, shallow: false, depth: 0, reference: '']],
-          userRemoteConfigs: [[url: 'https://github.cyberng.com/Conjur-Enterprise/kubernetes-conjur-deploy', credentialsId: 'jenkins_ci_token' ]] ,
+          userRemoteConfigs: [[url: 'https://github.com/cyberark/kubernetes-conjur-deploy', credentialsId: 'jenkins_ci_token' ]] ,
           ])
         }
         script {
@@ -70,6 +70,14 @@ pipeline {
         script {
           currentBuild.result = 'ABORTED'
           error("Aborting build because this build was triggered from upstream, but no release was built")
+        }
+      }
+    }
+
+    stage('Scan for internal URLs') {
+      steps {
+        script {
+          detectInternalUrls()
         }
       }
     }
