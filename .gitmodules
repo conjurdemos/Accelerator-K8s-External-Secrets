@@ -1,3 +1,3 @@
 [submodule "deploy/kubernetes-conjur-deploy"]
 	path = deploy/kubernetes-conjur-deploy
-	url = https://github.cyberng.com/conjur-enterprise/kubernetes-conjur-deploy
+	url = https://github.com/cyberark/kubernetes-conjur-deploy
