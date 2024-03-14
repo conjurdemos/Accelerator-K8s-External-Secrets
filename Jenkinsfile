@@ -9,6 +9,13 @@ properties([
   dependencies([])
 ])
 
+// Performs release promotion.  No other stages will be run
+if (params.MODE == "PROMOTE") {
+  // Copy Github Enterprise commit to Github
+  release.copyEnterpriseCommit()
+  return
+}
+
 pipeline {
   agent { label 'conjur-enterprise-common-agent' }
 
@@ -91,6 +98,11 @@ pipeline {
         }
       }
     }
+  }
 
+  post {
+    always {
+      releaseInfraPoolAgent(".infrapool/release_agents")
+    }
   }
 }
