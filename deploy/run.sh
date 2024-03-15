@@ -53,7 +53,21 @@ pushd "$policy_dir"
 
   cli_pod="$(pod_name "$CONJUR_NAMESPACE_NAME" 'app=conjur-cli')"
   $cli exec "$cli_pod" -- rm -rf /policy
-  $cli cp "$policy_dir" "$cli_pod:/policy"
+  $cli exec "$cli_pod" -- mkdir -p /policy/generated
+
+  set -- "users.yml" \
+    "generated/$APP_NAMESPACE_NAME.hosts.yml" \
+    "generated/$APP_NAMESPACE_NAME.authn-jwt.yml" \
+    "generated/$APP_NAMESPACE_NAME.authn-jwt-apps.yml" \
+    "generated/$APP_NAMESPACE_NAME.secrets.yml" \
+    "jwks.json" \
+    "load_policies.sh"
+
+  for policy_file in "$@"; do
+    "$cli" exec -i "$cli_pod" -- sh -c "cat - > /policy/$policy_file" < "./$policy_file"
+  done
+
+  "$cli" exec "$cli_pod" -- chmod +x /policy/load_policies.sh
 
   configure_conjur_cli
   $cli exec "$cli_pod" -- sh -c "
