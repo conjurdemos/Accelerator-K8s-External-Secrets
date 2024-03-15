@@ -51,11 +51,27 @@ pushd "$policy_dir"
   JWKS_URI="$($cli get --raw /.well-known/openid-configuration | jq -r '.jwks_uri')"
   $cli get --raw "$JWKS_URI" > jwks.json
 
+  # Copy the policy files to the Conjur CLI pod
   cli_pod="$(pod_name "$CONJUR_NAMESPACE_NAME" 'app=conjur-cli')"
   $cli exec "$cli_pod" -- rm -rf /policy
-  $cli cp "$policy_dir" "$cli_pod:/policy"
+  $cli exec "$cli_pod" -- mkdir -p /policy/generated
+
+  set -- "users.yml" \
+    "generated/$APP_NAMESPACE_NAME.hosts.yml" \
+    "generated/$APP_NAMESPACE_NAME.authn-jwt.yml" \
+    "generated/$APP_NAMESPACE_NAME.authn-jwt-apps.yml" \
+    "generated/$APP_NAMESPACE_NAME.secrets.yml" \
+    "jwks.json" \
+    "load_policies.sh"
+
+  for policy_file in "$@"; do
+    "$cli" exec -i "$cli_pod" -- sh -c "cat - > /policy/$policy_file" < "./$policy_file"
+  done
+
+  "$cli" exec "$cli_pod" -- chmod +x /policy/load_policies.sh
 
   configure_conjur_cli
+  # Execute the script to load the policy files
   $cli exec "$cli_pod" -- sh -c "
     APP_NAMESPACE_NAME=${APP_NAMESPACE_NAME} \
     AUTHENTICATOR_ID=${AUTHENTICATOR_ID} \
@@ -151,6 +167,11 @@ else
     $cli apply -n "$APP_NAMESPACE_NAME" -f ./generated/$APP_NAMESPACE_NAME.demo-app.yml
     $cli apply -n "$APP_NAMESPACE_NAME" -f ./curl.yml
   popd
+
+  # Wait for demo app and curl to be ready
+  . ./deploy/kubernetes-conjur-deploy/utils.sh
+  wait_for_it 600 "$cli describe -n $APP_NAMESPACE_NAME pod curl | grep Status: | grep -c Running"
+  wait_for_it 600 "$cli describe pods -n $APP_NAMESPACE_NAME | grep ContainersReady | grep -c True | grep -q 3"
 
   $cli exec curl -n "$APP_NAMESPACE_NAME" -- curl \
     -X POST \
