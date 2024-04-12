@@ -8,6 +8,6 @@ metadata:
 spec:
   containers:
   - name: curl
-    image: radial/busyboxplus:curl
+    image: curlimages/curl:latest
     imagePullPolicy: Always
     command: ["sh", "-c", "tail -f /dev/null"]
