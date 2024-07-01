@@ -43,5 +43,6 @@ RUN curl -L https://golang.org/dl/go${GOLANG_VERSION}.linux-amd64.tar.gz | tar -
 ENV PATH="$PATH:/usr/local/go/bin"
 
 WORKDIR /src
-RUN git config --global --add safe.directory /src
+RUN git config --global --add safe.directory /src && \
+    git config --global --add safe.directory /src/deploy/kubernetes-conjur-deploy
 COPY . .
