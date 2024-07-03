@@ -117,9 +117,10 @@ fi
 
 # The mechanism to determine consensus are unique labels on the ESO namespace,
 # formatted 'conjur.org/$UNIQUE_TEST_ID'. Each pipeline will add its own unique
-# label set to 'PENDING', and set it to 'DONE' once it consents to uninstalling.
+# label set to the timestamp of label creation, and set it to 'DONE' once it
+# consents to uninstalling.
 if [[ "$DEV" == "false" ]]; then
-  $cli label namespace "$ESO_NAMESPACE_NAME" "conjur.org/$UNIQUE_TEST_ID=PENDING"
+  $cli label namespace "$ESO_NAMESPACE_NAME" "conjur.org/$UNIQUE_TEST_ID=$(date +%s)"
 fi
 
 pushd "$manifest_dir"

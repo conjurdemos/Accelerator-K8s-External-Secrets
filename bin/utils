@@ -52,8 +52,12 @@ function eso_installed() {
   helm list -n "$ESO_NAMESPACE_NAME" | grep -q eso
 }
 
+# The ESO installation is considered unused if all conjur.org/$UNIQUE_TEST_ID
+# labels are either set to 'DONE', or set to a timestamp that is in excess of
+# one day (86400 seconds) in the past.
 function eso_unused() {
   echo "Polling for labels on namespace $ESO_NAMESPACE_NAME..."
+  current_time="$(date +%s)"
 
   labels="$(kubectl get ns "$ESO_NAMESPACE_NAME" -o jsonpath='{.metadata.labels}')"
   conjur_labels="$(
@@ -70,7 +74,7 @@ function eso_unused() {
   used=0
   for key in $keys; do
     value="$(echo "$conjur_labels" | jq -r ."\"$key\"")"
-    if [[ "$value" != "DONE" ]]; then
+    if [[ "$value" != "DONE" && "$((current_time - value))" -gt "86400" ]]; then
       used=1
       echo "Test suite with UNIQUE_TEST_ID=$(echo "$key" | cut -d/ -f2) still PENDING!"
     fi
