@@ -22,7 +22,13 @@ rm -f ./manifest/generated/$APP_NAMESPACE_NAME.* \
 #
 # The mechanism to determine consensus are unique labels on the ESO namespace,
 # formatted 'conjur.org/$UNIQUE_TEST_ID'. Each pipeline will add its own unique
-# label set to 'PENDING', and set it to 'DONE' once it consents to uninstalling.
+# label set to the timestamp of label creation, and set it to 'DONE' once it
+# consents to uninstalling.
+#
+# If the ESO namespace has labels which indicate it is still in use, the
+# timestamp value will be compared to the current time. If the label was applied
+# more than a day ago, it is considered expired, it will be ignored for the
+# purpose of consensus.
 #
 # Each pipeline will check for consensus once they've finished using ESO - the
 # first to discover consensus will uninstall the ESO Helm chart and delete the
