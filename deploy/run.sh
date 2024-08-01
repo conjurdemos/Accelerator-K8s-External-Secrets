@@ -156,9 +156,7 @@ pushd "$db_config_dir"
     --values "./values.${PLATFORM}.yml"
 popd
 
-if [[ "$DEV" != "true" ]]; then
-  go test -v ./e2e
-else
+if [[ "$DEV" == "true" ]]; then
   announce "Setting up demo environment"
 
   pushd "$manifest_dir"
@@ -179,3 +177,7 @@ else
     --data '{"name":"Accelerator Alice"}' \
     "http://demo-app.$APP_NAMESPACE_NAME.svc.cluster.local:8080/pet"
 fi
+
+announce "Running end-to-end tests"
+
+go test -v ./e2e

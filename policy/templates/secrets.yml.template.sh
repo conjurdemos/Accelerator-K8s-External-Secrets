@@ -7,7 +7,11 @@ cat << EOL
   id: secrets
   body:
     - &variables
-      - !variable test_secret
+      - !variable
+        id: test_secret
+        annotations:
+          conjur/kind: "demo"
+
       - !variable db/url
       - !variable db/username
       - !variable db/password

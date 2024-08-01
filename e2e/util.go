@@ -28,8 +28,8 @@ func ExternalSecretWaitCondition(ctx context.Context, c klient.Client, es *v1bet
 	}
 }
 
-func NewExternalSecret(name, namespace, secretStore, target string, variableMap map[string]string) v1beta1.ExternalSecret {
-	es := v1beta1.ExternalSecret{
+func newExternalSecret(name, namespace, target string) v1beta1.ExternalSecret {
+	return v1beta1.ExternalSecret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
@@ -38,16 +38,18 @@ func NewExternalSecret(name, namespace, secretStore, target string, variableMap 
 			RefreshInterval: &metav1.Duration{
 				Duration: time.Duration(10) * time.Second,
 			},
-			SecretStoreRef: v1beta1.SecretStoreRef{
-				Kind: "SecretStore",
-				Name: secretStore,
-			},
 			Target: v1beta1.ExternalSecretTarget{
 				Name:           target,
 				CreationPolicy: "Owner",
 			},
 		},
 	}
+}
+
+// NewExternalSecret creates a new ExternalSecret object for testing. It takes a map of variable
+// names and their corresponding remote reference keys.
+func NewExternalSecret(name, namespace, target string, variableMap map[string]string) v1beta1.ExternalSecret {
+	es := newExternalSecret(name, namespace, target)
 
 	data := []v1beta1.ExternalSecretData{}
 	for k, v := range variableMap {
@@ -60,6 +62,38 @@ func NewExternalSecret(name, namespace, secretStore, target string, variableMap 
 	}
 
 	es.Spec.Data = data
+
+	return es
+}
+
+// NewExternalSecretWithSearch creates a new ExternalSecret object for testing. It takes a regex
+// string to search for the remote variables.
+func NewExternalSecretWithSearch(name, namespace, target string, regex string) v1beta1.ExternalSecret {
+	es := newExternalSecret(name, namespace, target)
+	es.Spec.DataFrom = []v1beta1.ExternalSecretDataFromRemoteRef{
+		{
+			Find: &v1beta1.ExternalSecretFind{
+				Name: &v1beta1.FindName{
+					RegExp: regex,
+				},
+			},
+		},
+	}
+
+	return es
+}
+
+// NewExternalSecretsWithTags creates a new ExternalSecret object for testing. It takes a map of
+// tags to match for the remote variables.
+func NewExternalSecretsWithTags(name, namespace, target string, tags map[string]string) v1beta1.ExternalSecret {
+	es := newExternalSecret(name, namespace, target)
+	es.Spec.DataFrom = []v1beta1.ExternalSecretDataFromRemoteRef{
+		{
+			Find: &v1beta1.ExternalSecretFind{
+				Tags: tags,
+			},
+		},
+	}
 
 	return es
 }
