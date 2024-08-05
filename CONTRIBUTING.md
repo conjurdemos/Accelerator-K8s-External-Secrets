@@ -36,30 +36,10 @@ contributor!
 
 ## Releases
 
-Releases should be created by maintainers only. To create a tag and release,
-follow the instructions in this section.
+This project does not use releases.
 
-### Pre-requisites
+### Internal Contributors
 
-1. Review the git log and ensure the [changelog](CHANGELOG.md) contains all
-   relevant recent changes with references to GitHub issues or PRs, if possible.
-   Also ensure the latest unreleased version is accurate - our pipeline
-   generates a VERSION file based on the changelog, which is then used to assign
-   the version of the release and any release artifacts.
-1. Review the changes since the last tag, and if the dependencies have changed
-   revise the [NOTICES](NOTICES.txt) to correctly capture the included
-   dependencies and their licenses / copyrights.
-1. Ensure that all documentation that needs to be written has been
-   written by TW, approved by PO/Engineer, and pushed to the forward-facing
-   documentation.
-1. Scan the project for vulnerabilities
-
-### Release and Promote
-
-1. Merging into main/master branches will automatically trigger a release. If
-   successful, this release can be promoted at a later time.
-1. Jenkins build parameters can be utilized to promote a successful release or
-   manually trigger additional releases as needed.
-1. Reference the
-   [internal automated release doc](https://github.com/conjurinc/docs/blob/master/reference/infrastructure/automated_releases.md#release-and-promotion-process)
-   for releasing and promoting.
+To push the latest changes in the internal repository to the public one, run the
+Jenkins pipeline with the "PROMOTE" build type and the "COPY_ENTERPRISE_COMMIT"
+parameter set to "true".
