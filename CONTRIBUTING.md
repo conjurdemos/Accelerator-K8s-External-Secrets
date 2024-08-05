@@ -17,6 +17,7 @@ Secrets Operator integration through both API key and JWT authentication, in
 GKE and Openshift.
 
 To run these tests, uncomment the proper section of `demo-vars.sh`, and run:
+
 ```sh
 ./bin/start
 ```
