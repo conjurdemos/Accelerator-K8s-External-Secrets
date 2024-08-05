@@ -146,9 +146,8 @@ popd
 pushd "$db_config_dir"
   announce "Deploying demo app backend"
 
-  helm repo add bitnami https://charts.bitnami.com/bitnami
-  helm repo update
-  helm install postgresql bitnami/postgresql -n "$APP_NAMESPACE_NAME" \
+  helm install postgresql oci://registry-1.docker.io/bitnamicharts/postgresql \
+    -n "$APP_NAMESPACE_NAME" \
     --wait \
     --timeout "5m" \
     --set "auth.username=$DB_USERNAME" \
