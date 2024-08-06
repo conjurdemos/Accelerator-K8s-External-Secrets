@@ -63,14 +63,14 @@ func TestIntegration(t *testing.T) {
 			),
 		},
 		{
-			name:                "FindByTag using API key authentication",
-			provider:            "api-key",
+			name:                "FindByTag using using JWT authentication",
+			provider:            "jwt",
 			expectedSecretKey:   "secrets_test_secret", // Name of Conjur secret, with / replaced by _
 			expectedSecretValue: "MyS3cretContent!",
 			externalSecret: NewExternalSecretsWithTags(
-				"external-secret-api-key",
+				"external-secret-jwt",
 				TestNamespace,
-				"target-secret-api-key",
+				"target-secret-jwt",
 				map[string]string{
 					"conjur/kind": "demo",
 				},
