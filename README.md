@@ -22,6 +22,8 @@ more detailed  information on our certification levels, see [our community guide
 | External Secrets Operator | 0.9.0           |
 | Conjur Enterprise         | 12.5            |
 
+ESO is also compatible with [Conjur OSS](https://github.com/cyberark/conjur) and [Conjur Cloud](https://www.cyberark.com/products/multi-cloud-secrets/).
+
 ## Part I: Setup
 
 Update `demo-vars.sh` with the appropriate values. Notable settings include:
