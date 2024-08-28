@@ -56,9 +56,9 @@ func TestIntegration(t *testing.T) {
 			expectedSecretKey:   "secrets_test_secret", // Name of Conjur secret, with / replaced by _
 			expectedSecretValue: "MyS3cretContent!",
 			externalSecret: NewExternalSecretWithSearch(
-				"external-secret-api-key",
+				"external-secret-api-key-findbyname",
 				TestNamespace,
-				"target-secret-api-key",
+				"target-secret-api-key-findbyname",
 				"^.*test_secret$", // regex to match the secret
 			),
 		},
@@ -68,9 +68,9 @@ func TestIntegration(t *testing.T) {
 			expectedSecretKey:   "secrets_test_secret", // Name of Conjur secret, with / replaced by _
 			expectedSecretValue: "MyS3cretContent!",
 			externalSecret: NewExternalSecretsWithTags(
-				"external-secret-jwt",
+				"external-secret-jwt-findbytag",
 				TestNamespace,
-				"target-secret-jwt",
+				"target-secret-jwt-findbytag",
 				map[string]string{
 					"conjur/kind": "demo",
 				},
@@ -107,7 +107,7 @@ func TestIntegration(t *testing.T) {
 				Assess("K8s Secret set correctly with Conjur Secret data", func(ctx context.Context, t *testing.T, c *envconf.Config) context.Context {
 					// Check content of created Secret
 					var targetSecret corev1.Secret
-					err := c.Client().Resources(TestNamespace).Get(ctx, "target-secret-"+tc.provider, TestNamespace, &targetSecret)
+					err := c.Client().Resources(TestNamespace).Get(ctx, tc.externalSecret.Spec.Target.Name, TestNamespace, &targetSecret)
 					assert.NoError(t, err)
 					assert.Equal(t, []byte(tc.expectedSecretValue), targetSecret.Data[tc.expectedSecretKey])
 					return ctx
